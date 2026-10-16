@@ -1,0 +1,43 @@
+name: OpenPDF Maven Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: windows-latest
+          java: 25
+          arch: arm64
+          runner: windows-11-arm
+          expander_leg: windows-latest-25-arm64
+    name: Build with Java ${{ matrix.java }} on ${{ matrix.os }} [${{ 
+      matrix.expander_leg }}]
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Java ${{ matrix.java }}
+      uses: actions/setup-java@v5
+      with:
+          # Temurin publishes no Java 25 build for Windows on ARM64; Zulu does
+        distribution: ${{ (matrix.os == 'windows-latest' && matrix.arch == 
+          'arm64') && 'zulu' || 'temurin' }}
+        java-version: ${{ matrix.java }}
+
+    - name: Check Maven version and directory contents
+      shell: bash
+      run: |
+        ./mvnw -v
+        echo "** ls **"
+        pwd && ls -l
+
+    - name: Build with Maven
+      run: ./mvnw -B install --file pom.xml
+    timeout-minutes: 150
